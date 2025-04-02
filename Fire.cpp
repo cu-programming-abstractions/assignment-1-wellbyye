@@ -1,14 +1,54 @@
-#include "Fire.h"
+#include "random.h"
+#include "grid.h"
+#include "vector.h"
+#include "GUI/SimpleTest.h"
 using namespace std;
 
 void updateFire(Grid<int>& fire) {
-    /* TODO: The next line just exists to make sure you don't get compiler warning messages
-     * when this function isn't implemented. Delete this comment and the next line, then
-     * implement this function.
-     */
-    (void) fire;
+    int rows = fire.numRows();
+    int cols = fire.numCols();
+
+    // Start with a copy of fire so we preserve existing values
+    Grid<int> newFire = fire;
+
+    // Only update rows above the bottom
+        for(int row = rows - 2; row >= 0; row--) {
+           for(int col = 0; col < cols; col++) {
+              int value = fire[row + 1][col]; // copy from below
+
+             // Select a target cell above
+            Vector<int> options;
+            if (col > 0) options.add(col - 1);
+            options.add(col);
+            if (col < cols - 1) options += col + 1;
+
+            int targetCol = options[randomInteger(0, options.size() - 1)];
+
+            // Apply cooling
+            if (randomChance(2.0 / 3.0) && value > 0) {
+                value -= 1;
+            }
+
+            // Set value in newFire
+            newFire[row][targetCol] = value;
+        }
+    }
+
+    fire = newFire;
 }
 
+namespace {
+/* Helper function to test if the specified value matches one of the items
+     * from the given list.
+     */
+bool isOneOf(int) {
+    return false;
+}
+template <typename First, typename... Rest>
+bool isOneOf(int value, First option1, Rest... remaining) {
+    return value == option1 || isOneOf(value, remaining...);
+}
+}
 
 /* * * * * * Provided Test Cases * * * * * */
 #include "GUI/SimpleTest.h"
@@ -20,7 +60,7 @@ PROVIDED_TEST("updateFire does not change dimensions of world.") {
     const int numCols = 7;
 
     /* Make sure the fire has the right size to begin with. */
-    Grid<int> fire(numRows, numCols);
+    void<int> fire(numRows, numCols);
     EXPECT_EQUAL(fire.numRows(), numRows);
     EXPECT_EQUAL(fire.numCols(), numCols);
 
@@ -170,7 +210,6 @@ PROVIDED_TEST("updateFire copies zero values upward.") {
     }
 }
 
-#include "Demos/ChiSquaredTesting.h"
 
 PROVIDED_TEST("updateFire shifts values horizontally with the correct probabilities.") {
     /* This fire has one heat source at the bottom. We pick a seven-column world
